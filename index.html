@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRC-32 Emergency Alert Integrity Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-shield-alt"></i>
+            <h1>CRC-32 Emergency Alert Integrity Simulator</h1>
+        </div>
+        <p class="subtitle">Interactive educational tool for detecting corrupted data packets using Cyclic Redundancy Check (CRC-32).</p>
+    </header>
+
+    <main class="container">
+        <!-- Input Section -->
+        <section class="card input-section">
+            <div class="card-header">
+                <h2><i class="fas fa-edit"></i> 1. Emergency Alert Input</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="alertType">Select Alert Type:</label>
+                    <select id="alertType" onchange="loadPreset()">
+                        <option value="fire">Fire Emergency</option>
+                        <option value="flood">Flood Warning</option>
+                        <option value="earthquake">Earthquake Alert</option>
+                        <option value="cyclone">Cyclone Watch</option>
+                        <option value="medical">Medical Emergency</option>
+                        <option value="custom">Custom Data</option>
+                    </select>
+                </div>
+                <div class="form-grid" id="dataFields">
+                    <div class="form-group">
+                        <label>Alert ID</label>
+                        <input type="text" id="alertId">
+                    </div>
+                    <div class="form-group">
+                        <label>Severity</label>
+                        <select id="severity">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="location">
+                    </div>
+                    <div class="form-group">
+                        <label>Timestamp</label>
+                        <input type="text" id="timestamp">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Emergency Message</label>
+                        <textarea id="message" rows="2"></textarea>
+                    </div>
+                </div>
+                
+                <div class="action-panel">
+                    <div class="error-controls">
+                        <label class="toggle">
+                            <input type="checkbox" id="errorToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Simulate Network Error (Flip Bit)</span>
+                        <input type="number" id="errorBitIndex" class="bit-index-input" placeholder="Bit index (optional)" min="0" disabled>
+                    </div>
+                    <button id="sendBtn" class="btn-primary" onclick="startSimulation()">
+                        <i class="fas fa-paper-plane"></i> Transmit Packet
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Animation Section -->
+        <section class="animation-section" id="animationArea">
+            <div class="node sender">
+                <i class="fas fa-desktop"></i>
+                <span>Sender</span>
+            </div>
+            <div class="network-channel">
+                <div class="wire"></div>
+                <div class="data-stream" id="dataStream">
+                    <!-- Packets will be animated here -->
+                </div>
+                <div class="network-cloud">
+                    <i class="fas fa-cloud"></i>
+                    <span class="network-label">Network</span>
+                    <i class="fas fa-bolt error-strike hidden" id="errorStrike"></i>
+                </div>
+            </div>
+            <div class="node receiver">
+                <i class="fas fa-server"></i>
+                <span>Receiver</span>
+            </div>
+        </section>
+
+        <!-- Data Visualization Panels -->
+        <div class="dashboard-grid">
+            <!-- Sender Side -->
+            <section class="card data-panel sender-panel">
+                <div class="card-header">
+                    <h2><i class="fas fa-file-export"></i> Sender Data (Transmission)</h2>
+                </div>
+                <div class="card-body">
+                    <div class="accordion">
+                        <button class="accordion-btn active" onclick="toggleAccordion(this)">Original Data (JSON) <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content show">
+                            <pre id="displayOriginalData">Awaiting transmission...</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <button class="accordion-btn active" onclick="toggleAccordion(this)">Binary Conversion <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content show">
+                            <p class="explanation">Data is converted to UTF-8 bytes, then to 8-bit binary strings.</p>
+                            <div class="binary-box" id="displayBinaryData"></div>
+                        </div>
+                    </div>
+
+                    <div class="accordion">
+                        <button class="accordion-btn active" onclick="toggleAccordion(this)">CRC-32 Generation <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content show">
+                            <p class="explanation">Sender calculates CRC-32 checksum based on the binary data.</p>
+                            <div class="result-box">
+                                <span class="label">CRC-32 (Hex):</span>
+                                <span class="value hex-val" id="displaySenderCrcHex">-</span>
+                            </div>
+                            <div class="result-box">
+                                <span class="label">CRC-32 (Binary):</span>
+                                <span class="value bin-val" id="displaySenderCrcBin">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion">
+                        <button class="accordion-btn" onclick="toggleAccordion(this)">Transmitted Packet <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content">
+                            <p class="explanation">Final packet consists of Data Payload + CRC-32 checksum.</p>
+                            <div class="binary-box packet-box" id="displayTransmittedPacket"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Receiver Side -->
+            <section class="card data-panel receiver-panel" id="receiverPanel">
+                <div class="card-header">
+                    <h2><i class="fas fa-file-import"></i> Receiver Data (Verification)</h2>
+                </div>
+                <div class="card-body">
+                    <div class="accordion">
+                        <button class="accordion-btn active" onclick="toggleAccordion(this)">Received Packet <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content show">
+                            <p class="explanation">Binary sequence received from the network. May contain errors.</p>
+                            <div class="binary-box packet-box" id="displayReceivedPacket">Awaiting packet...</div>
+                        </div>
+                    </div>
+
+                    <div class="accordion">
+                        <button class="accordion-btn active" onclick="toggleAccordion(this)">CRC-32 Verification <i class="fas fa-chevron-down"></i></button>
+                        <div class="accordion-content show">
+                            <p class="explanation">Receiver separates Data and CRC, recalculates CRC on Data, and compares.</p>
+                            <div class="comparison-grid">
+                                <div class="comp-item">
+                                    <span class="label">Received CRC:</span>
+                                    <span class="value hex-val" id="displayReceivedCrc">-</span>
+                                </div>
+                                <div class="comp-item">
+                                    <span class="label">Recalculated CRC:</span>
+                                    <span class="value hex-val" id="displayRecalculatedCrc">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="final-result-box" id="finalResultBox">
+                        <i class="fas fa-spinner fa-spin" id="resultIcon" style="display:none;"></i>
+                        <h3 id="resultText">Status: Pending</h3>
+                        <p id="resultDesc">Waiting for transmission...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- How It Works Section -->
+        <section class="card info-section">
+            <div class="card-header">
+                <h2><i class="fas fa-book-open"></i> How It Works</h2>
+            </div>
+            <div class="card-body">
+                <div class="steps-grid">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <p><strong>Input:</strong> Emergency data is entered (Fire, Flood, etc.).</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <p><strong>Packet Creation:</strong> Sender creates the structured JSON data packet.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <p><strong>Binary Conversion:</strong> Data is converted into UTF-8 bytes and then binary (0s & 1s).</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <p><strong>Checksum:</strong> Sender generates the CRC-32 checksum from the data.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">5</div>
+                        <p><strong>Transmission:</strong> Packet (Data + CRC) travels through the network.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">6</div>
+                        <p><strong>Noise/Error:</strong> Network error may corrupt the data, flipping bits (Simulated).</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">7</div>
+                        <p><strong>Reception:</strong> Receiver gets the binary sequence and separates Data from CRC.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">8</div>
+                        <p><strong>Recalculation:</strong> Receiver independently recalculates CRC-32 on the received Data portion.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">9</div>
+                        <p><strong>Comparison:</strong> Both CRC values (Received vs Recalculated) are compared.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">10</div>
+                        <p><strong>Decision:</strong> If they match, ACCEPT packet. If they differ, REJECT packet (corruption detected).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
