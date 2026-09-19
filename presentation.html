@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CRC-32 Presentation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/black.min.css" id="theme">
+  <style>
+    /* Global Background */
+    .reveal {
+      background: linear-gradient(135deg, #050B14 0%, #0A192F 100%);
+    }
+    
+    /* Typography */
+    .reveal h1, .reveal h2, .reveal h3 {
+      text-transform: none;
+      font-weight: 800;
+      color: #64FFDA; /* Neon Blue/Green */
+      letter-spacing: -1px;
+      text-shadow: 0 0 20px rgba(100, 255, 218, 0.2);
+    }
+    .reveal h1 {
+      font-size: 2.8em;
+    }
+    .reveal p, .reveal li {
+      font-size: 1.15em;
+      line-height: 1.6;
+      color: #CCD6F6; /* Soft Light Blue */
+    }
+    
+    /* Highlights */
+    .highlight {
+      color: #38BDF8; /* Sky Blue */
+      font-weight: bold;
+    }
+    .warning {
+      color: #FF5555; /* Alert Red */
+      font-weight: bold;
+    }
+    
+    /* Diagrams */
+    .mermaid {
+      background: #FFFFFF;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Custom Team List */
+    .team-list {
+      list-style-type: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      font-size: 0.9em;
+      color: #E2E8F0;
+      margin-top: 30px;
+    }
+    .team-list li {
+      background: rgba(100, 255, 218, 0.05);
+      border: 1px solid rgba(100, 255, 218, 0.2);
+      padding: 10px 20px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .team-list li:hover {
+      background: rgba(100, 255, 218, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    /* Custom Boxes */
+    .box-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid #10B981;
+      color: #D1FAE5;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .box-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px solid #EF4444;
+      color: #FEE2E2;
+      padding: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>Catching Errors with CRC-32</h1>
+        <h3 style="color: #38BDF8; font-weight: 500;">Emergency Alert Integrity Simulator</h3>
+        <p style="font-size: 0.9em; margin-top: 50px; color: #8892B0;">Presented by:</p>
+        <ul class="team-list">
+          <li>Ch. Munna (2503A520Q2)</li>
+          <li>Ved Prakash (2503A520Q2)</li>
+          <li>Vishnu (2503A520Q3)</li>
+          <li>Samvarsh (2503A520Q5)</li>
+          <li>Showrya (2503A520Q6)</li>
+        </ul>
+      </section>
+
+      <!-- Slide 2: Problem -->
+      <section>
+        <h2>What is the Problem?</h2>
+        <p>Imagine sending a critical text: <span class="highlight">"Fire at Sector 4"</span></p>
+        <ul>
+          <li class="fragment">Messages travel as electrical signals (0s and 1s).</li>
+          <li class="fragment"><span class="warning">The Danger:</span> Bad weather or noise can flip a '0' into a '1'.</li>
+          <li class="fragment">The receiver gets the wrong message.</li>
+        </ul>
+        <br/>
+        <h4 class="fragment" style="color: #FCD34D; margin-top: 30px;">How do we know if it was broken?</h4>
+      </section>
+
+      <!-- Slide 3: Solution -->
+      <section>
+        <h2>What is CRC?</h2>
+        <p>CRC stands for <span class="highlight">Cyclic Redundancy Check</span>.</p>
+        <p class="fragment" style="color: #94A3B8;">Think of it like a <strong>digital wax seal</strong> on an envelope.</p>
+        <ol>
+          <li class="fragment">The computer uses math to create a unique <strong>tag</strong>.</li>
+          <li class="fragment">If the message is tampered with, the tag breaks!</li>
+        </ol>
+      </section>
+
+      <!-- Slide 4: 3 Steps Diagram -->
+      <section>
+        <h2>How Our Project Works</h2>
+        <p>The 3 Main Steps of transmission:</p>
+        <div class="mermaid">
+          flowchart LR
+              A([1. SENDER]) -->|Sends Data| B([2. NETWORK])
+              B -->|May cause errors| C([3. RECEIVER])
+              
+              style A fill:#bfdbfe,stroke:#2563eb,stroke-width:3px,color:black
+              style B fill:#fef08a,stroke:#ca8a04,stroke-width:3px,color:black
+              style C fill:#bbf7d0,stroke:#16a34a,stroke-width:3px,color:black
+        </div>
+      </section>
+
+      <!-- Slide 5: Sender -->
+      <section>
+        <h2>Step 1: The Sender</h2>
+        <div class="mermaid">
+          flowchart TD
+              Data[Emergency Message] --> Bin[Binary: 01101...]
+              Bin --> Math[CRC Math]
+              Math --> Tag[Unique Tag]
+              Bin --> Packet
+              Tag --> Packet[Final Packet Sent]
+        </div>
+      </section>
+
+      <!-- Slide 6: Network -->
+      <section>
+        <h2 style="color: #38BDF8;">Step 2: The Network Journey</h2>
+        <p>The packet travels through the internet.</p>
+        <ul>
+          <li class="fragment">Sometimes, electrical noise corrupts the data.</li>
+          <li class="fragment">We built a button to <span class="warning">Simulate an Error</span>.</li>
+          <li class="fragment">It flips a bit to see if the system catches it!</li>
+        </ul>
+      </section>
+
+      <!-- Slide 7: Receiver -->
+      <section>
+        <h2>Step 3: The Receiver</h2>
+        <p>The destination computer gets the packet.</p>
+        <ol>
+          <li class="fragment">It separates the Data and the Tag.</li>
+          <li class="fragment">It does <strong style="color: #FF5555;">NOT</strong> trust the data yet.</li>
+          <li class="fragment">It calculates its <span class="highlight">OWN</span> tag from the received data.</li>
+        </ol>
+      </section>
+
+      <!-- Slide 8: Decision -->
+      <section>
+        <h2>The Final Decision</h2>
+        <p>The Receiver compares the two tags:</p>
+        <div class="fragment box-success">
+          <h3 style="color: #10B981; margin: 0 0 10px 0;">✅ YES (They Match) = ACCEPT</h3>
+          <p style="margin: 0;">The message is perfectly safe.</p>
+        </div>
+        <div class="fragment box-error">
+          <h3 style="color: #EF4444; margin: 0 0 10px 0;">❌ NO (They Don't Match) = REJECT</h3>
+          <p style="margin: 0;">The message was corrupted. Stay safe!</p>
+        </div>
+      </section>
+
+      <!-- Slide 9: Summary -->
+      <section>
+        <h2>Summary Diagram</h2>
+        <div class="mermaid">
+          flowchart TD
+              S[Sender creates Tag] --> N{Network Journey}
+              N -->|No Error| R1[Receiver checks]
+              N -->|Bit Flipped| R2[Receiver checks]
+              
+              R1 --> A((ACCEPT: Safe))
+              R2 --> B((REJECT: Corrupted))
+              
+              style A fill:#86efac,stroke:#16a34a,stroke-width:3px,color:black
+              style B fill:#fca5a5,stroke:#dc2626,stroke-width:3px,color:black
+        </div>
+      </section>
+
+      <!-- Slide 10: Conclusion -->
+      <section>
+        <h2>Conclusion</h2>
+        <p>CRC-32 is a powerful mathematical tool.</p>
+        <p class="highlight" style="font-size: 1.3em;">It helps computers catch errors instantly so that we only trust safe data.</p>
+        <br/>
+        <h3 style="margin-top: 40px;">Thank You!</h3>
+        <p style="color: #8892B0;">Any Questions?</p>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      transition: 'slide', // Clean horizontal slide
+      backgroundTransition: 'fade',
+      progress: true,
+      center: true
+    });
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</body>
+</html>

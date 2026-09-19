@@ -87,6 +87,7 @@ document.getElementById('errorToggle').addEventListener('change', function(e) {
 // Setup on load
 window.onload = () => {
     loadPreset();
+    fetchHistory();
 };
 
 async function startSimulation() {
@@ -107,12 +108,29 @@ async function startSimulation() {
     const dataBinStr = bytesToBinaryStr(bytes);
     document.getElementById('displayBinaryData').textContent = dataBinStr;
     
-    // 3. CRC Generation
-    const crcVal = calculateCRC32(bytes);
-    const crcHex = uint32ToHexStr(crcVal);
-    const crcBin = uint32ToBinaryStr(crcVal);
+    // 3. CRC Generation (Using Python Backend)
+    let crcHex, crcBin;
+    try {
+        const response = await fetch('/api/calculate_crc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataObj)
+        });
+        if (response.ok) {
+            const result = await response.json();
+            crcHex = result.crc_hex;
+            crcBin = result.crc_bin;
+        } else {
+            throw new Error("Backend not responding");
+        }
+    } catch (e) {
+        console.warn("Falling back to JS CRC calculation", e);
+        const crcVal = calculateCRC32(bytes);
+        crcHex = uint32ToHexStr(crcVal);
+        crcBin = uint32ToBinaryStr(crcVal);
+    }
     
-    document.getElementById('displaySenderCrcHex').textContent = crcHex;
+    document.getElementById('displaySenderCrcHex').textContent = crcHex + ' (Python)';
     document.getElementById('displaySenderCrcBin').textContent = crcBin;
     
     // 4. Transmitted Packet
@@ -216,6 +234,46 @@ async function startSimulation() {
     
     // Auto-scroll to receiver panel
     document.getElementById('receiverPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Log to Python backend
+    try {
+        await fetch('/api/log_transmission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alert_id: dataObj.id,
+                severity: dataObj.severity,
+                status: (receivedCrcHex === recalculatedCrcHex) ? 'ACCEPT' : 'REJECT',
+                error_simulated: simulateError
+            })
+        });
+        fetchHistory();
+    } catch (e) {
+        console.warn("Could not log to backend", e);
+    }
+}
+
+async function fetchHistory() {
+    try {
+        const res = await fetch('/api/history');
+        if (res.ok) {
+            const history = await res.json();
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            history.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.alert_id}</td>
+                    <td>${item.severity}</td>
+                    <td>${item.error_simulated ? '<span style="color:red">Yes</span>' : 'No'}</td>
+                    <td style="font-weight:bold; color:${item.status === 'ACCEPT' ? 'green' : 'red'}">${item.status}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {
+        console.warn("Could not fetch history from backend", e);
+    }
 }
 
 function playAnimation(packetStr, corruptedPacket, isError) {

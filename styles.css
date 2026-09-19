@@ -543,3 +543,25 @@ pre {
     font-size: 0.95rem;
     margin: 0;
 }
+
+/* History Table */
+.history-section {
+    margin-top: 1rem;
+}
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+.history-table th, .history-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.75rem;
+    text-align: left;
+}
+.history-table th {
+    background: #f8fafc;
+    font-weight: 600;
+}
+.history-table tr:nth-child(even) {
+    background: #f1f5f9;
+}

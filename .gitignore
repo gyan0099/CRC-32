@@ -1,0 +1,7 @@
+venv/
+.DS_Store
+__pycache__/
+*.db
+*.sqlite
+*.sqlite3
+transmissions.db
